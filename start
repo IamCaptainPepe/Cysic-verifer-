@@ -6,10 +6,11 @@
 set -euo pipefail
 
 #######################################
-# Requirements check
+# Ensure GNU screen is installed
 #######################################
 if ! command -v screen >/dev/null 2>&1; then
-  echo "Error: GNU screen is not installed. Please install it (e.g., sudo apt install screen) and try again."
+  echo "Error: GNU screen is not installed."
+  echo "Install it first (e.g., sudo apt install screen) and run this script again."
   exit 1
 fi
 
@@ -50,5 +51,5 @@ fi
 echo "🚀 Launching verifier inside screen session \"$SCREEN_NAME\" …"
 screen -DmS "$SCREEN_NAME" bash -c 'cd ~/cysic-verifier && bash start.sh'
 
-echo "✅ All done! You can detach/close this terminal safely."
+echo "✅ All done! You can safely close this terminal."
 echo "To reattach later:  screen -r cysic-verifer"
