@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # cysic_install_and_run.sh
-# Re-attach later: screen -r cysic-verifer
+# Re-attach later:  screen -r cysic-verifer
 
 set -euo pipefail
 
@@ -9,7 +9,7 @@ set -euo pipefail
 ############################################################
 if ! command -v screen >/dev/null 2>&1; then
   echo "Error: GNU screen is not installed."
-  echo "Install it (e.g., sudo apt install screen) and run this script again."
+  echo "Install it (e.g.  sudo apt install screen) and try again."
   exit 1
 fi
 
@@ -37,31 +37,37 @@ echo "▶️  Running setup with address $REWARD_ADDR …"
 bash /tmp/setup_linux.sh "$REWARD_ADDR"
 
 ############################################################
-# 4. Launch the verifier in a **background** screen session
+# 4. Launch the verifier in a background screen session
 ############################################################
-SCREEN_NAME="cysic-verifer"              # ← session name
-LOG_FILE="${HOME}/cysic-verifer.log"     # ← persistent log
+SCREEN_NAME="cysic-verifer"
+LOG_FILE="${HOME}/cysic-verifer.log"
 
-# If a session with this name already exists, replace it
+# If a session with this name already exists, kill it so we can start fresh
 if screen -list | grep -q "\.${SCREEN_NAME}[[:space:]]"; then
   echo "ℹ️  A screen session named \"$SCREEN_NAME\" exists. Replacing it."
   screen -S "$SCREEN_NAME" -X quit || true
 fi
 
-echo "🚀 Launching verifier inside background screen session \"$SCREEN_NAME\" …"
-# -d  start detached   -m  force creation   -L  log to file
-screen -dmL -Logfile "$LOG_FILE" -S "$SCREEN_NAME" \
-       bash -c 'cd ~/cysic-verifier && bash start.sh'
+echo "🚀 Starting verifier in background screen session \"$SCREEN_NAME\" …"
+screen -dmS "$SCREEN_NAME" \
+       bash -c 'cd ~/cysic-verifier && exec bash start.sh >>"'"$LOG_FILE"'" 2>&1'
+
+# Give screen 2 с to spawn, then verify
+sleep 2
+if ! screen -list | grep -q "\.${SCREEN_NAME}[[:space:]]"; then
+  echo "❌ The screen session failed to start. See $LOG_FILE for details."
+  exit 1
+fi
 
 ############################################################
 # 5. Quick reference for the user
 ############################################################
 cat <<EOF
 
-✅ The verifier is now running in the background.
-   Log file: $LOG_FILE
+✅  The verifier is now running fully in the background.
+   All output goes to:  $LOG_FILE
 
-Useful commands:
+How to interact:
   • View live console …  screen -r $SCREEN_NAME
   • Detach again ……      press Ctrl+A then D
   • Tail the log ………     tail -f $LOG_FILE
