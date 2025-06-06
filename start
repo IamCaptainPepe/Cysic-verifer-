@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # cysic_install_and_run.sh
 # Run with: ./cysic_install_and_run.sh
-# Reattach later: screen -r cysic-verifer
+# Re-attach later: screen -r cysic-verifer
 
 set -euo pipefail
 
@@ -38,9 +38,10 @@ echo "▶️  Running setup with address $REWARD_ADDR …"
 bash /tmp/setup_linux.sh "$REWARD_ADDR"
 
 #######################################
-# Start the verifier in a detached screen session
+# Start the verifier in a detached screen session with logging
 #######################################
 SCREEN_NAME="cysic-verifer"
+LOG_FILE="${HOME}/cysic-verifer.log"
 
 # If a session with the same name exists, kill it so we can start fresh
 if screen -list | grep -q "\.${SCREEN_NAME}[[:space:]]"; then
@@ -49,7 +50,19 @@ if screen -list | grep -q "\.${SCREEN_NAME}[[:space:]]"; then
 fi
 
 echo "🚀 Launching verifier inside screen session \"$SCREEN_NAME\" …"
-screen -DmS "$SCREEN_NAME" bash -c 'cd ~/cysic-verifier && bash start.sh'
+# -L enables logging; -Logfile sets the path
+screen -DmLS "$SCREEN_NAME" -Logfile "$LOG_FILE" bash -c 'cd ~/cysic-verifier && bash start.sh'
 
-echo "✅ All done! You can safely close this terminal."
-echo "To reattach later:  screen -r cysic-verifer"
+#######################################
+# Helpful reminders
+#######################################
+cat <<EOF
+
+✅ Setup complete! The verifier is now running in a detached screen session.
+
+Quick reference:
+  • View live output:   screen -r $SCREEN_NAME
+  • Detach again:       press Ctrl+A then D
+  • Follow the log:     tail -f $LOG_FILE
+  • Stop the verifier:  screen -S $SCREEN_NAME -X quit
+EOF
