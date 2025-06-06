@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# cysic_install_and_run.sh
+# Run with: ./cysic_install_and_run.sh
+
+set -euo pipefail
+
+#######################################
+# Prompt for and validate wallet address
+#######################################
+while true; do
+  read -rp "Enter your reward address (0x…): " REWARD_ADDR
+  if [[ $REWARD_ADDR =~ ^0x[0-9a-fA-F]{40}$ ]]; then
+    break
+  fi
+  echo "❌ Invalid format. An EVM address must start with 0x followed by exactly 40 hexadecimal characters."
+done
+
+#######################################
+# Download and run setup_linux.sh
+#######################################
+echo "⬇️  Downloading setup_linux.sh …"
+curl -fsSL \
+  https://github.com/cysic-labs/cysic-phase3/releases/download/v1.0.0/setup_linux.sh \
+  -o /tmp/setup_linux.sh
+
+chmod +x /tmp/setup_linux.sh
+echo "▶️  Running setup with address $REWARD_ADDR …"
+bash /tmp/setup_linux.sh "$REWARD_ADDR"
+
+#######################################
+# Start the verifier
+#######################################
+cd "${HOME}/cysic-verifier"
+echo "🚀 Launching verifier …"
+bash start.sh
