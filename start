@@ -1,33 +1,32 @@
 #!/usr/bin/env bash
 # cysic_install_and_run.sh
-# Run with: ./cysic_install_and_run.sh
 # Re-attach later: screen -r cysic-verifer
 
 set -euo pipefail
 
-#######################################
-# Ensure GNU screen is installed
-#######################################
+############################################################
+# 1. Ensure GNU screen is installed
+############################################################
 if ! command -v screen >/dev/null 2>&1; then
   echo "Error: GNU screen is not installed."
-  echo "Install it first (e.g., sudo apt install screen) and run this script again."
+  echo "Install it (e.g., sudo apt install screen) and run this script again."
   exit 1
 fi
 
-#######################################
-# Prompt for and validate wallet address
-#######################################
+############################################################
+# 2. Prompt for and validate wallet address
+############################################################
 while true; do
   read -rp "Enter your reward address (0x…): " REWARD_ADDR
   if [[ $REWARD_ADDR =~ ^0x[0-9a-fA-F]{40}$ ]]; then
     break
   fi
-  echo "❌ Invalid format. An EVM address must start with 0x followed by exactly 40 hexadecimal characters."
+  echo "❌ Invalid format. Must be 0x followed by exactly 40 hex characters."
 done
 
-#######################################
-# Download and run setup_linux.sh
-#######################################
+############################################################
+# 3. Download and run setup_linux.sh
+############################################################
 echo "⬇️  Downloading setup_linux.sh …"
 curl -fsSL \
   https://github.com/cysic-labs/cysic-phase3/releases/download/v1.0.0/setup_linux.sh \
@@ -37,32 +36,36 @@ chmod +x /tmp/setup_linux.sh
 echo "▶️  Running setup with address $REWARD_ADDR …"
 bash /tmp/setup_linux.sh "$REWARD_ADDR"
 
-#######################################
-# Start the verifier in a detached screen session with logging
-#######################################
-SCREEN_NAME="cysic-verifer"
-LOG_FILE="${HOME}/cysic-verifer.log"
+############################################################
+# 4. Launch the verifier in a **background** screen session
+############################################################
+SCREEN_NAME="cysic-verifer"              # ← session name
+LOG_FILE="${HOME}/cysic-verifer.log"     # ← persistent log
 
-# If a session with the same name exists, kill it so we can start fresh
+# If a session with this name already exists, replace it
 if screen -list | grep -q "\.${SCREEN_NAME}[[:space:]]"; then
-  echo "ℹ️  A screen session named \"$SCREEN_NAME\" already exists. Replacing it."
+  echo "ℹ️  A screen session named \"$SCREEN_NAME\" exists. Replacing it."
   screen -S "$SCREEN_NAME" -X quit || true
 fi
 
-echo "🚀 Launching verifier inside screen session \"$SCREEN_NAME\" …"
-# -L enables logging; -Logfile sets the path
-screen -DmLS "$SCREEN_NAME" -Logfile "$LOG_FILE" bash -c 'cd ~/cysic-verifier && bash start.sh'
+echo "🚀 Launching verifier inside background screen session \"$SCREEN_NAME\" …"
+# -d  start detached   -m  force creation   -L  log to file
+screen -dmL -Logfile "$LOG_FILE" -S "$SCREEN_NAME" \
+       bash -c 'cd ~/cysic-verifier && bash start.sh'
 
-#######################################
-# Helpful reminders
-#######################################
+############################################################
+# 5. Quick reference for the user
+############################################################
 cat <<EOF
 
-✅ Setup complete! The verifier is now running in a detached screen session.
+✅ The verifier is now running in the background.
+   Log file: $LOG_FILE
 
-Quick reference:
-  • View live output:   screen -r $SCREEN_NAME
-  • Detach again:       press Ctrl+A then D
-  • Follow the log:     tail -f $LOG_FILE
-  • Stop the verifier:  screen -S $SCREEN_NAME -X quit
+Useful commands:
+  • View live console …  screen -r $SCREEN_NAME
+  • Detach again ……      press Ctrl+A then D
+  • Tail the log ………     tail -f $LOG_FILE
+  • Stop the verifier …  screen -S $SCREEN_NAME -X quit
+
+You can safely close this terminal.
 EOF
