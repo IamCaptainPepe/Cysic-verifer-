@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 # cysic_install_and_run.sh
 # Run with: ./cysic_install_and_run.sh
+# Reattach later: screen -r cysic-verifer
 
 set -euo pipefail
+
+#######################################
+# Requirements check
+#######################################
+if ! command -v screen >/dev/null 2>&1; then
+  echo "Error: GNU screen is not installed. Please install it (e.g., sudo apt install screen) and try again."
+  exit 1
+fi
 
 #######################################
 # Prompt for and validate wallet address
@@ -28,8 +37,18 @@ echo "▶️  Running setup with address $REWARD_ADDR …"
 bash /tmp/setup_linux.sh "$REWARD_ADDR"
 
 #######################################
-# Start the verifier
+# Start the verifier in a detached screen session
 #######################################
-cd "${HOME}/cysic-verifier"
-echo "🚀 Launching verifier …"
-bash start.sh
+SCREEN_NAME="cysic-verifer"
+
+# If a session with the same name exists, kill it so we can start fresh
+if screen -list | grep -q "\.${SCREEN_NAME}[[:space:]]"; then
+  echo "ℹ️  A screen session named \"$SCREEN_NAME\" already exists. Replacing it."
+  screen -S "$SCREEN_NAME" -X quit || true
+fi
+
+echo "🚀 Launching verifier inside screen session \"$SCREEN_NAME\" …"
+screen -DmS "$SCREEN_NAME" bash -c 'cd ~/cysic-verifier && bash start.sh'
+
+echo "✅ All done! You can detach/close this terminal safely."
+echo "To reattach later:  screen -r cysic-verifer"
