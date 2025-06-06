@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # cysic_install_and_run.sh
-# Re-attach later:  screen -r cysic-verifer
+# Run:          ./cysic_install_and_run.sh
+# Re-attach:    screen -r cysic-verifer
 
 set -euo pipefail
 
@@ -9,7 +10,7 @@ set -euo pipefail
 ############################################################
 if ! command -v screen >/dev/null 2>&1; then
   echo "Error: GNU screen is not installed."
-  echo "Install it (e.g.  sudo apt install screen) and try again."
+  echo "Install it (e.g. sudo apt install screen) and run this script again."
   exit 1
 fi
 
@@ -38,24 +39,25 @@ bash /tmp/setup_linux.sh "$REWARD_ADDR"
 
 ############################################################
 # 4. Launch the verifier in a background screen session
+#    with live console + persistent log (tee)
 ############################################################
-SCREEN_NAME="cysic-verifer"
-LOG_FILE="${HOME}/cysic-verifer.log"
+SCREEN_NAME="cysic-verifer"              # session name (as you requested)
+LOG_FILE="${HOME}/cysic-verifer.log"     # where output is stored
 
-# If a session with this name already exists, kill it so we can start fresh
+# Replace any existing session with the same name
 if screen -list | grep -q "\.${SCREEN_NAME}[[:space:]]"; then
-  echo "ℹ️  A screen session named \"$SCREEN_NAME\" exists. Replacing it."
+  echo "ℹ️  Screen session \"$SCREEN_NAME\" already exists. Replacing it."
   screen -S "$SCREEN_NAME" -X quit || true
 fi
 
-echo "🚀 Starting verifier in background screen session \"$SCREEN_NAME\" …"
+echo "🚀 Starting verifier inside detached screen session \"$SCREEN_NAME\" …"
 screen -dmS "$SCREEN_NAME" \
-       bash -c 'cd ~/cysic-verifier && exec bash start.sh >>"'"$LOG_FILE"'" 2>&1'
+       bash -c 'cd ~/cysic-verifier && exec bash start.sh 2>&1 | tee -a "'"$LOG_FILE"'"'
 
-# Give screen 2 с to spawn, then verify
+# Verify that the session really started
 sleep 2
 if ! screen -list | grep -q "\.${SCREEN_NAME}[[:space:]]"; then
-  echo "❌ The screen session failed to start. See $LOG_FILE for details."
+  echo "❌ The screen session failed to start. Check $LOG_FILE for details."
   exit 1
 fi
 
@@ -64,14 +66,14 @@ fi
 ############################################################
 cat <<EOF
 
-✅  The verifier is now running fully in the background.
-   All output goes to:  $LOG_FILE
+✅  The verifier is now running in the background.
 
-How to interact:
+Useful commands:
   • View live console …  screen -r $SCREEN_NAME
   • Detach again ……      press Ctrl+A then D
   • Tail the log ………     tail -f $LOG_FILE
   • Stop the verifier …  screen -S $SCREEN_NAME -X quit
 
+Log file location: $LOG_FILE
 You can safely close this terminal.
 EOF
